@@ -1,16 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Copy, FileText, Zap } from "lucide-react";
+import { Copy, FileText, Zap, Loader } from "lucide-react";
 import { toast } from "sonner";
 
 const WatermarkRemover = () => {
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [processingStage, setProcessingStage] = useState('');
+
+  const simulateProgress = () => {
+    setProgress(0);
+    setProcessingStage('Analyzing text...');
+    
+    const stages = [
+      { progress: 20, stage: 'Analyzing text...' },
+      { progress: 45, stage: 'Detecting watermarks...' },
+      { progress: 70, stage: 'Removing characters...' },
+      { progress: 90, stage: 'Finalizing results...' },
+      { progress: 100, stage: 'Complete!' }
+    ];
+
+    stages.forEach((stage, index) => {
+      setTimeout(() => {
+        setProgress(stage.progress);
+        setProcessingStage(stage.stage);
+      }, index * 800);
+    });
+  };
 
   const handleRemoveWatermarks = async () => {
     if (!inputText.trim()) {
@@ -19,6 +43,8 @@ const WatermarkRemover = () => {
     }
 
     setIsLoading(true);
+    simulateProgress();
+    
     try {
       const response = await fetch('https://watermark-whisperer-api.vercel.app/api/remove-watermarks', {
         method: 'POST',
@@ -41,6 +67,8 @@ const WatermarkRemover = () => {
       toast.error('Failed to connect to API');
     } finally {
       setIsLoading(false);
+      setProgress(0);
+      setProcessingStage('');
     }
   };
 
@@ -83,24 +111,47 @@ const WatermarkRemover = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Textarea
-              placeholder="Paste your text here..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              className="min-h-[150px] resize-none"
-            />
+            <div className={`transition-all duration-300 ${isLoading ? 'animate-pulse ring-2 ring-blue-300' : ''}`}>
+              <Textarea
+                placeholder="Paste your text here..."
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                className="min-h-[150px] resize-none transition-all duration-200"
+                disabled={isLoading}
+              />
+            </div>
+            
+            {/* Progress Bar */}
+            {isLoading && (
+              <div className="space-y-2 animate-fade-in">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">{processingStage}</span>
+                  <span className="text-gray-600">{progress}%</span>
+                </div>
+                <Progress value={progress} className="h-2" />
+              </div>
+            )}
+            
             <div className="flex gap-2">
               <Button 
                 onClick={handleRemoveWatermarks} 
                 disabled={isLoading}
-                className="flex items-center gap-2"
+                className={`flex items-center gap-2 transition-all duration-200 ${
+                  isLoading ? 'animate-pulse' : 'hover:scale-105'
+                }`}
               >
-                <Zap className="h-4 w-4" />
+                {isLoading ? (
+                  <Loader className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4" />
+                )}
                 {isLoading ? 'Processing...' : 'Remove Watermarks'}
               </Button>
               <Button 
                 variant="outline" 
                 onClick={addSampleWatermarks}
+                disabled={isLoading}
+                className="transition-all duration-200 hover:scale-105"
               >
                 Add Sample Text
               </Button>
@@ -108,9 +159,55 @@ const WatermarkRemover = () => {
           </CardContent>
         </Card>
 
+        {/* Loading Skeleton for Results */}
+        {isLoading && !result && (
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-4 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Statistics Skeleton */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="text-center p-4 bg-gray-50 rounded-lg">
+                    <Skeleton className="h-8 w-12 mx-auto mb-2" />
+                    <Skeleton className="h-4 w-20 mx-auto" />
+                  </div>
+                ))}
+              </div>
+              
+              {/* Badges Skeleton */}
+              <div className="space-y-3">
+                <Skeleton className="h-6 w-40" />
+                <div className="flex flex-wrap gap-2">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-6 w-20" />
+                  ))}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* Text Result Skeleton */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-8 w-20" />
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg border space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Results Section */}
-        {result && (
-          <Card>
+        {result && !isLoading && (
+          <Card className="animate-fade-in">
             <CardHeader>
               <CardTitle>Results</CardTitle>
               <CardDescription>
@@ -120,25 +217,25 @@ const WatermarkRemover = () => {
             <CardContent className="space-y-6">
               {/* Statistics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-center p-4 bg-blue-50 rounded-lg transition-all duration-200 hover:scale-105">
                   <div className="text-2xl font-bold text-blue-600">
                     {result.stats.originalLength}
                   </div>
                   <div className="text-sm text-gray-600">Original Length</div>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-center p-4 bg-green-50 rounded-lg transition-all duration-200 hover:scale-105">
                   <div className="text-2xl font-bold text-green-600">
                     {result.stats.cleanedLength}
                   </div>
                   <div className="text-sm text-gray-600">Cleaned Length</div>
                 </div>
-                <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="text-center p-4 bg-red-50 rounded-lg transition-all duration-200 hover:scale-105">
                   <div className="text-2xl font-bold text-red-600">
                     {result.stats.charactersRemoved}
                   </div>
                   <div className="text-sm text-gray-600">Removed</div>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-center p-4 bg-purple-50 rounded-lg transition-all duration-200 hover:scale-105">
                   <div className="text-2xl font-bold text-purple-600">
                     {result.stats.detectedWatermarks.length}
                   </div>
@@ -152,7 +249,7 @@ const WatermarkRemover = () => {
                   <h3 className="text-lg font-semibold mb-3">Detected Watermarks</h3>
                   <div className="flex flex-wrap gap-2">
                     {result.stats.detectedWatermarks.map((watermark, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                      <Badge key={index} variant="secondary" className="text-xs transition-all duration-200 hover:scale-105">
                         {watermark.name} ({watermark.count})
                       </Badge>
                     ))}
@@ -170,7 +267,7 @@ const WatermarkRemover = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => copyToClipboard(result.cleaned)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 transition-all duration-200 hover:scale-105"
                   >
                     <Copy className="h-4 w-4" />
                     Copy
