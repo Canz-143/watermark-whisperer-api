@@ -37,33 +37,34 @@ function removeWatermarks(text) {
   const originalText = text;
   const originalLength = text.length;
 
-  // Complete list of watermark characters commonly used
-  const watermarkChars = [
+  // Truly invisible/zero-width watermark characters that should be completely removed
+  const invisibleWatermarkChars = [
     '\u200B', // Zero-Width Space - most common watermark
     '\u200C', // Zero-Width Non-Joiner
     '\u200D', // Zero-Width Joiner
     '\uFEFF', // Zero-Width No-Break Space (BOM)
     '\u2060', // Word Joiner
     '\u061C', // Arabic Letter Mark
-    '\u180E', // Mongolian Vowel Separator
-    '\u202F', // Narrow No-Break Space - common in watermarks
+    '\u180E'  // Mongolian Vowel Separator
+  ];
+
+  // Legitimate spacing characters that should be converted to normal spaces
+  const spacingChars = [
+    '\u202F', // Narrow No-Break Space
     '\u2003', // Em Space
     '\u00A0', // Non-Breaking Space
     '\u2028', // Line Separator
     '\u2029', // Paragraph Separator
-    '\u00B7'  // Middle Dot
   ];
 
-  // Create a proper regex that matches all watermark characters
-  const watermarkRegex = new RegExp(`[${watermarkChars.map(char => 
-    '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0')
-  ).join('')}]`, 'g');
+  // All watermark characters for detection and counting
+  const allWatermarkChars = [...invisibleWatermarkChars, ...spacingChars];
 
   const detectedWatermarks = [];
   let totalRemoved = 0;
 
   // Count occurrences of each watermark character
-  watermarkChars.forEach(char => {
+  allWatermarkChars.forEach(char => {
     const charRegex = new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g');
     const matches = text.match(charRegex);
     if (matches) {
@@ -77,12 +78,23 @@ function removeWatermarks(text) {
     }
   });
 
-  // Remove watermark characters completely
-  let cleanedText = text.replace(watermarkRegex, '');
+  let cleanedText = text;
 
-  // Only clean up excessive whitespace if we actually removed watermarks
+  // First, replace legitimate spacing characters with normal spaces
+  spacingChars.forEach(char => {
+    const charRegex = new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g');
+    cleanedText = cleanedText.replace(charRegex, ' ');
+  });
+
+  // Then, remove truly invisible watermark characters completely
+  const invisibleWatermarkRegex = new RegExp(`[${invisibleWatermarkChars.map(char => 
+    '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0')
+  ).join('')}]`, 'g');
+  
+  cleanedText = cleanedText.replace(invisibleWatermarkRegex, '');
+
+  // Clean up any multiple spaces that might have been created
   if (totalRemoved > 0) {
-    // Clean up any multiple spaces that might have been created
     cleanedText = cleanedText.replace(/\s{2,}/g, ' ').trim();
   }
 
