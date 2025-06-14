@@ -37,7 +37,7 @@ function removeWatermarks(text) {
   const originalText = text;
   const originalLength = text.length;
 
-  // Only target truly invisible/zero-width characters that are commonly used as watermarks
+  // Complete list of watermark characters commonly used
   const watermarkChars = [
     '\u200B', // Zero-Width Space - most common watermark
     '\u200C', // Zero-Width Non-Joiner
@@ -45,18 +45,27 @@ function removeWatermarks(text) {
     '\uFEFF', // Zero-Width No-Break Space (BOM)
     '\u2060', // Word Joiner
     '\u061C', // Arabic Letter Mark
-    '\u180E'  // Mongolian Vowel Separator
+    '\u180E', // Mongolian Vowel Separator
+    '\u202F', // Narrow No-Break Space - common in watermarks
+    '\u2003', // Em Space
+    '\u00A0', // Non-Breaking Space
+    '\u2028', // Line Separator
+    '\u2029', // Paragraph Separator
+    '\u00B7'  // Middle Dot
   ];
 
-  // Create regex that only matches the specific watermark characters
-  const watermarkRegex = new RegExp(`[${watermarkChars.map(char => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0')).join('')}]`, 'g');
+  // Create a proper regex that matches all watermark characters
+  const watermarkRegex = new RegExp(`[${watermarkChars.map(char => 
+    '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0')
+  ).join('')}]`, 'g');
 
   const detectedWatermarks = [];
   let totalRemoved = 0;
 
   // Count occurrences of each watermark character
   watermarkChars.forEach(char => {
-    const matches = text.match(new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g'));
+    const charRegex = new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g');
+    const matches = text.match(charRegex);
     if (matches) {
       detectedWatermarks.push({
         character: char,
@@ -68,15 +77,17 @@ function removeWatermarks(text) {
     }
   });
 
-  // Simple removal - just remove the watermark characters without replacement
-  // Since these are zero-width/invisible characters, removing them shouldn't affect spacing
+  // Remove watermark characters completely
   let cleanedText = text.replace(watermarkRegex, '');
 
-  // Only normalize excessive whitespace if we actually removed watermarks
+  // Only clean up excessive whitespace if we actually removed watermarks
   if (totalRemoved > 0) {
-    // Clean up any double spaces that might have been created
+    // Clean up any multiple spaces that might have been created
     cleanedText = cleanedText.replace(/\s{2,}/g, ' ').trim();
   }
+
+  console.log(`Processing complete: removed ${totalRemoved} watermark characters`);
+  console.log(`Detected watermarks:`, detectedWatermarks);
 
   return {
     original: originalText,
