@@ -1,3 +1,4 @@
+
 // ChatGPT Watermark Removal API - SMART VERSION
 // Fully production-ready serverless function for Vercel deployment
 
@@ -36,19 +37,26 @@ function removeWatermarks(text) {
   const originalText = text;
   const originalLength = text.length;
 
+  // Only target truly invisible/zero-width characters that are commonly used as watermarks
   const watermarkChars = [
-    '\u202F', '\u200B', '\u2003', '\u2014', '\u00A0', '\u2060',
-    '\u200C', '\u200D', '\uFEFF', '\u2028', '\u2029',
-    '\u180E', '\u061C', '\u00B7'
+    '\u200B', // Zero-Width Space - most common watermark
+    '\u200C', // Zero-Width Non-Joiner
+    '\u200D', // Zero-Width Joiner
+    '\uFEFF', // Zero-Width No-Break Space (BOM)
+    '\u2060', // Word Joiner
+    '\u061C', // Arabic Letter Mark
+    '\u180E'  // Mongolian Vowel Separator
   ];
 
-  const watermarkRegex = new RegExp(`[${watermarkChars.join('')}]`, 'g');
+  // Create regex that only matches the specific watermark characters
+  const watermarkRegex = new RegExp(`[${watermarkChars.map(char => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0')).join('')}]`, 'g');
 
   const detectedWatermarks = [];
   let totalRemoved = 0;
 
+  // Count occurrences of each watermark character
   watermarkChars.forEach(char => {
-    const matches = text.match(new RegExp(char, 'g'));
+    const matches = text.match(new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g'));
     if (matches) {
       detectedWatermarks.push({
         character: char,
@@ -60,20 +68,15 @@ function removeWatermarks(text) {
     }
   });
 
-  // Context-aware replacement: re-insert space when hidden char joins words
-  let cleanedText = text.replace(watermarkRegex, (match, offset) => {
-    const before = text[offset - 1] || '';
-    const after = text[offset + 1] || '';
-    const isAlphaBefore = /[A-Za-z0-9]/.test(before);
-    const isAlphaAfter = /[A-Za-z0-9]/.test(after);
-    if (isAlphaBefore && isAlphaAfter) {
-      return ' ';
-    }
-    return '';
-  });
+  // Simple removal - just remove the watermark characters without replacement
+  // Since these are zero-width/invisible characters, removing them shouldn't affect spacing
+  let cleanedText = text.replace(watermarkRegex, '');
 
-  // Normalize any weird whitespace leftover
-  cleanedText = cleanedText.replace(/\s+/g, ' ').trim();
+  // Only normalize excessive whitespace if we actually removed watermarks
+  if (totalRemoved > 0) {
+    // Clean up any double spaces that might have been created
+    cleanedText = cleanedText.replace(/\s{2,}/g, ' ').trim();
+  }
 
   return {
     original: originalText,
