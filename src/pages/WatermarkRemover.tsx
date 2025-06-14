@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +20,7 @@ const WatermarkRemover = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/remove-watermarks', {
+      const response = await fetch('https://watermark-whisperer-api.vercel.app/api/remove-watermarks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -200,7 +199,7 @@ const WatermarkRemover = () => {
               <div>
                 <h4 className="font-semibold mb-2">Endpoint</h4>
                 <code className="px-2 py-1 bg-gray-100 rounded text-sm">
-                  POST /api/remove-watermarks
+                  POST https://watermark-whisperer-api.vercel.app/api/remove-watermarks
                 </code>
               </div>
               <div>
