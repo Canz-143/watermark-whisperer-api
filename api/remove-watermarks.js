@@ -1,5 +1,4 @@
-
-// ChatGPT Watermark Removal API
+// ChatGPT Watermark Removal API - FIXED VERSION
 // Production-ready serverless function for Vercel deployment
 
 /**
@@ -28,6 +27,7 @@ function getCharacterName(char) {
 
 /**
  * Removes ChatGPT watermarks from text and provides detailed statistics
+ * FIXED: Now properly handles watermark characters embedded within words
  */
 function removeWatermarks(text) {
   if (typeof text !== 'string') {
@@ -61,7 +61,8 @@ function removeWatermarks(text) {
   
   // Count and track each watermark character
   watermarkChars.forEach(char => {
-    const count = (text.match(new RegExp(char, 'g')) || []).length;
+    const matches = text.match(new RegExp(char, 'g'));
+    const count = matches ? matches.length : 0;
     if (count > 0) {
       detectedWatermarks.push({
         character: char,
@@ -73,13 +74,15 @@ function removeWatermarks(text) {
     }
   });
   
-  // Remove watermark characters and replace with regular spaces
+  // FIXED APPROACH: Simply remove watermark characters completely
+  // Don't replace with spaces - just remove them entirely
   let cleanedText = text;
   watermarkChars.forEach(char => {
-    cleanedText = cleanedText.replace(new RegExp(char, 'g'), ' ');
+    cleanedText = cleanedText.replace(new RegExp(char, 'g'), '');
   });
   
-  // Collapse multiple consecutive spaces into single spaces
+  // Clean up any resulting multiple spaces between words
+  // This handles cases where watermarks were between words
   cleanedText = cleanedText.replace(/\s+/g, ' ');
   
   // Trim leading and trailing whitespace
@@ -171,7 +174,7 @@ export default function handler(req, res) {
       success: true,
       ...result,
       timestamp: new Date().toISOString(),
-      apiVersion: '1.0.0'
+      apiVersion: '1.0.1' // Updated version number
     });
     
   } catch (error) {
@@ -187,3 +190,6 @@ export default function handler(req, res) {
     });
   }
 }
+
+// Export the function for testing purposes
+export { removeWatermarks };
