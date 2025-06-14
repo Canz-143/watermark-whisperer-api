@@ -27,7 +27,7 @@ function getCharacterName(char) {
 
 /**
  * Removes ChatGPT watermarks from text and provides detailed statistics
- * FIXED: Now properly handles watermark characters embedded within words
+ * IMPROVED: Now properly handles different watermark placement scenarios
  */
 function removeWatermarks(text) {
   if (typeof text !== 'string') {
@@ -74,18 +74,26 @@ function removeWatermarks(text) {
     }
   });
   
-  // FIXED APPROACH: Simply remove watermark characters completely
-  // Don't replace with spaces - just remove them entirely
+  // IMPROVED APPROACH: Handle different watermark placement scenarios
   let cleanedText = text;
+  
+  // Step 1: Replace watermark characters with a temporary marker
+  const tempMarker = '|||SPACE|||';
   watermarkChars.forEach(char => {
-    cleanedText = cleanedText.replace(new RegExp(char, 'g'), '');
+    cleanedText = cleanedText.replace(new RegExp(char, 'g'), tempMarker);
   });
   
-  // Clean up any resulting multiple spaces between words
-  // This handles cases where watermarks were between words
+  // Step 2: Analyze patterns and restore proper spacing
+  // If we have sequences like "word|||SPACE|||word" without actual spaces, add spaces
+  cleanedText = cleanedText.replace(/([a-zA-Z0-9])\|\|\|SPACE\|\|\|([a-zA-Z0-9])/g, '$1 $2');
+  
+  // Step 3: Remove remaining temporary markers (these were likely within words or redundant)
+  cleanedText = cleanedText.replace(/\|\|\|SPACE\|\|\|/g, '');
+  
+  // Step 4: Clean up any resulting multiple spaces
   cleanedText = cleanedText.replace(/\s+/g, ' ');
   
-  // Trim leading and trailing whitespace
+  // Step 5: Trim leading and trailing whitespace
   cleanedText = cleanedText.trim();
   
   const cleanedLength = cleanedText.length;
