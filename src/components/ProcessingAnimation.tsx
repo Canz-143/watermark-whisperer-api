@@ -13,21 +13,21 @@ const ProcessingAnimation = ({ isLoading, progress, processingStage }: Processin
   if (!isLoading) return null;
 
   const getStageIcon = () => {
-    if (progress < 25) return <Search className="h-4 w-4 text-blue-500" />;
-    if (progress < 50) return <Sparkles className="h-4 w-4 text-purple-500" />;
-    if (progress < 75) return <Zap className="h-4 w-4 text-yellow-500" />;
-    if (progress < 100) return <Sparkles className="h-4 w-4 text-green-500" />;
-    return <CheckCircle className="h-4 w-4 text-green-500" />;
+    if (progress < 25) return <Search className="h-4 w-4 text-blue-500 dark:text-blue-400" />;
+    if (progress < 50) return <Sparkles className="h-4 w-4 text-purple-500 dark:text-purple-400" />;
+    if (progress < 75) return <Zap className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />;
+    if (progress < 100) return <Sparkles className="h-4 w-4 text-green-500 dark:text-green-400" />;
+    return <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />;
   };
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-100">
+    <div className="relative overflow-hidden bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 rounded-lg p-6 border border-blue-100 dark:border-blue-800/50">
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(6)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-30 animate-pulse"
+            className="absolute w-2 h-2 bg-blue-400 dark:bg-blue-300 rounded-full opacity-30 animate-pulse"
             style={{
               left: `${20 + i * 15}%`,
               top: `${30 + (i % 2) * 40}%`,
@@ -44,20 +44,20 @@ const ProcessingAnimation = ({ isLoading, progress, processingStage }: Processin
             <div className="animate-spin">
               {getStageIcon()}
             </div>
-            <span className="text-sm font-medium text-slate-700">{processingStage}</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{processingStage}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-700">{progress}%</span>
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{progress}%</span>
           </div>
         </div>
         
         <div className="relative">
           <Progress 
             value={progress} 
-            className="h-3 bg-white/50 border border-white/20"
+            className="h-3 bg-white/50 dark:bg-gray-800/50 border border-white/20 dark:border-gray-700/20"
           />
           <div 
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 dark:from-blue-400 dark:to-purple-400 rounded-full transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           >
             <div className="absolute right-0 top-0 w-4 h-full bg-white/30 rounded-full animate-pulse" />
