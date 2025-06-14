@@ -1,3 +1,4 @@
+
 // ChatGPT Watermark Removal API - SMART VERSION
 // Fully production-ready serverless function for Vercel deployment
 
@@ -21,7 +22,9 @@ function getCharacterName(char) {
     '\u061C': 'Arabic Letter Mark',
     '\u00B7': 'Middle Dot',
     '\u2011': 'Non-Breaking Hyphen',
-    '\u034F': 'Combining Grapheme Joiner'
+    '\u034F': 'Combining Grapheme Joiner',
+    '\u200A': 'Hair Space',
+    '\u2008': 'Punctuation Space'
   };
   
   return characterMap[char] || `Unknown Character (U+${char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')})`;
@@ -57,7 +60,9 @@ function removeWatermarks(text) {
     '\u00A0', // Non-Breaking Space
     '\u2028', // Line Separator
     '\u2029', // Paragraph Separator
-    '\u2011'  // Non-Breaking Hyphen (sometimes used as separator)
+    '\u2011', // Non-Breaking Hyphen (sometimes used as separator)
+    '\u200A', // Hair Space
+    '\u2008'  // Punctuation Space
   ];
 
   // All watermark characters for detection and counting
