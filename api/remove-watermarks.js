@@ -27,7 +27,7 @@ function getCharacterName(char) {
 }
 
 /**
- * Removes ChatGPT watermarks from text and preserves intended word boundaries
+ * Removes ChatGPT watermarks from text using context-aware analysis
  */
 function removeWatermarks(text) {
   if (typeof text !== 'string') {
@@ -37,7 +37,7 @@ function removeWatermarks(text) {
   const originalText = text;
   const originalLength = text.length;
 
-  // Truly invisible/zero-width watermark characters that should be completely removed
+  // Truly invisible/zero-width watermark characters
   const invisibleWatermarkChars = [
     '\u200B', // Zero-Width Space - most common watermark
     '\u200C', // Zero-Width Non-Joiner
@@ -78,20 +78,56 @@ function removeWatermarks(text) {
     }
   });
 
-  let cleanedText = text;
-
-  // First, replace legitimate spacing characters with normal spaces
-  spacingChars.forEach(char => {
-    const charRegex = new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g');
-    cleanedText = cleanedText.replace(charRegex, ' ');
-  });
-
-  // Then, remove truly invisible watermark characters completely
-  const invisibleWatermarkRegex = new RegExp(`[${invisibleWatermarkChars.map(char => 
-    '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0')
-  ).join('')}]`, 'g');
+  // Helper function to check if a character is a letter or number
+  const isAlphaNumeric = (char) => /[a-zA-Z0-9]/.test(char);
   
-  cleanedText = cleanedText.replace(invisibleWatermarkRegex, '');
+  // Helper function to check if a character is whitespace
+  const isWhitespace = (char) => /\s/.test(char);
+
+  // Convert text to array for easier manipulation
+  let chars = Array.from(text);
+  let result = [];
+
+  for (let i = 0; i < chars.length; i++) {
+    const currentChar = chars[i];
+    
+    // Check if current character is an invisible watermark
+    if (invisibleWatermarkChars.includes(currentChar)) {
+      // Get context: previous and next characters
+      const prevChar = i > 0 ? chars[i - 1] : null;
+      const nextChar = i < chars.length - 1 ? chars[i + 1] : null;
+      
+      // Only add a space if we're at a legitimate word boundary
+      // i.e., if the invisible character is between a non-space and a space, or vice versa
+      const shouldAddSpace = (
+        (prevChar && isAlphaNumeric(prevChar) && nextChar && isWhitespace(nextChar)) ||
+        (prevChar && isWhitespace(prevChar) && nextChar && isAlphaNumeric(nextChar)) ||
+        (prevChar && isAlphaNumeric(prevChar) && nextChar && isAlphaNumeric(nextChar) && 
+         // Check if this might be a word boundary by looking for patterns
+         (i === 0 || i === chars.length - 1 || 
+          (i > 0 && chars[i - 1] === ' ') || 
+          (i < chars.length - 1 && chars[i + 1] === ' ')))
+      );
+      
+      // Don't add the invisible character, but add space only if needed for word boundaries
+      if (shouldAddSpace && result.length > 0 && result[result.length - 1] !== ' ') {
+        result.push(' ');
+      }
+      // Skip the invisible watermark character entirely
+      continue;
+    }
+    
+    // Check if current character is a spacing character that should be normalized
+    if (spacingChars.includes(currentChar)) {
+      result.push(' ');
+      continue;
+    }
+    
+    // Regular character - add it as-is
+    result.push(currentChar);
+  }
+
+  let cleanedText = result.join('');
 
   // Clean up any multiple spaces that might have been created
   if (totalRemoved > 0) {
