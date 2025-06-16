@@ -1,4 +1,3 @@
-
 // ChatGPT Watermark Removal API - SMART VERSION
 // Fully production-ready serverless function for Vercel deployment
 
@@ -31,7 +30,7 @@ function getCharacterName(char) {
 }
 
 /**
- * Removes ChatGPT watermarks from text using comprehensive detection and simple cleaning
+ * Removes ChatGPT watermarks from text while preserving original formatting
  */
 function removeWatermarks(text) {
   if (typeof text !== 'string') {
@@ -53,20 +52,24 @@ function removeWatermarks(text) {
     '\u034F'  // Combining Grapheme Joiner
   ];
 
-  // Legitimate spacing characters that should be converted to normal spaces
+  // Spacing characters that should be converted to normal spaces
   const spacingChars = [
     '\u202F', // Narrow No-Break Space
     '\u2003', // Em Space
     '\u00A0', // Non-Breaking Space
-    '\u2028', // Line Separator
-    '\u2029', // Paragraph Separator
     '\u2011', // Non-Breaking Hyphen (sometimes used as separator)
     '\u200A', // Hair Space
     '\u2008'  // Punctuation Space
   ];
 
+  // Line separator characters that should become newlines to preserve formatting
+  const lineBreakChars = [
+    '\u2028', // Line Separator
+    '\u2029'  // Paragraph Separator
+  ];
+
   // All watermark characters for detection and counting
-  const allWatermarkChars = [...invisibleWatermarkChars, ...spacingChars];
+  const allWatermarkChars = [...invisibleWatermarkChars, ...spacingChars, ...lineBreakChars];
 
   const detectedWatermarks = [];
   let totalRemoved = 0;
@@ -106,15 +109,24 @@ function removeWatermarks(text) {
     cleanedText = cleanedText.replace(charRegex, ' ');
   });
 
-  // Step 3: Clean up multiple consecutive spaces
-  cleanedText = cleanedText.replace(/\s{2,}/g, ' ');
+  // Step 3: Convert line separator characters to proper newlines to preserve formatting
+  lineBreakChars.forEach(char => {
+    const charRegex = new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g');
+    cleanedText = cleanedText.replace(charRegex, '\n');
+  });
 
-  // Step 4: Clean up spaces around punctuation if needed
-  cleanedText = cleanedText.replace(/\s+([.,!?;:])/g, '$1');
-  cleanedText = cleanedText.replace(/([.,!?;:])\s{2,}/g, '$1 ');
+  // Step 4: Clean up multiple consecutive spaces on the same line (preserve newlines)
+  // Only collapse spaces and tabs, not newlines
+  cleanedText = cleanedText.replace(/[ \t]{2,}/g, ' ');
 
-  // Step 5: Trim leading/trailing whitespace
-  cleanedText = cleanedText.trim();
+  // Step 5: Clean up spaces around punctuation if needed (preserve line structure)
+  cleanedText = cleanedText.replace(/[ \t]+([.,!?;:])/g, '$1');
+  cleanedText = cleanedText.replace(/([.,!?;:])[ \t]{2,}/g, '$1 ');
+
+  // Step 6: Only trim excessive leading/trailing whitespace, preserve intentional formatting
+  // Remove only if there are more than 2 consecutive spaces/newlines at start/end
+  cleanedText = cleanedText.replace(/^[ \t]{2,}/, ' ').replace(/[ \t]{2,}$/, ' ');
+  cleanedText = cleanedText.replace(/^\n{2,}/, '\n').replace(/\n{2,}$/, '\n');
 
   console.log(`Processing complete:`, {
     originalLength,
