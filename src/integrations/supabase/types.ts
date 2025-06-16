@@ -44,6 +44,39 @@ export type Database = {
           },
         ]
       }
+      credit_transactions: {
+        Row: {
+          created_at: string
+          credits_amount: number
+          description: string | null
+          email: string
+          id: string
+          stripe_payment_intent_id: string | null
+          transaction_type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits_amount: number
+          description?: string | null
+          email: string
+          id?: string
+          stripe_payment_intent_id?: string | null
+          transaction_type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits_amount?: number
+          description?: string | null
+          email?: string
+          id?: string
+          stripe_payment_intent_id?: string | null
+          transaction_type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           content: string | null
@@ -125,6 +158,69 @@ export type Database = {
           id?: number
           message?: Json
           session_id?: string
+        }
+        Relationships: []
+      }
+      usage_logs: {
+        Row: {
+          api_endpoint: string
+          created_at: string
+          credits_used: number
+          email: string
+          id: string
+          request_data: Json | null
+          response_data: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          api_endpoint: string
+          created_at?: string
+          credits_used: number
+          email: string
+          id?: string
+          request_data?: Json | null
+          response_data?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          api_endpoint?: string
+          created_at?: string
+          credits_used?: number
+          email?: string
+          id?: string
+          request_data?: Json | null
+          response_data?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_credits: {
+        Row: {
+          created_at: string
+          credits: number
+          email: string
+          id: string
+          is_admin: boolean
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits?: number
+          email: string
+          id?: string
+          is_admin?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          email?: string
+          id?: string
+          is_admin?: boolean
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
