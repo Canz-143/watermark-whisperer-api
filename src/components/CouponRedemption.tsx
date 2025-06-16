@@ -33,25 +33,31 @@ const CouponRedemption = ({ onCreditsUpdated }: CouponRedemptionProps) => {
         return;
       }
 
-      const response = await fetch('https://gmsbosytllfouwzujros.supabase.co/functions/v1/redeem-coupon', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
+      console.log('Starting coupon redemption for code:', couponCode);
+
+      const { data, error } = await supabase.functions.invoke('redeem-coupon', {
         body: JSON.stringify({ couponCode: couponCode.trim() }),
       });
 
-      const data = await response.json();
+      console.log('Coupon redemption response:', { data, error });
 
-      if (response.ok && data.success) {
+      if (error) {
+        console.error('Edge function error:', error);
+        toast.error('Failed to redeem coupon. Please try again.');
+        return;
+      }
+
+      if (data && data.success) {
         toast.success(data.message);
         setCouponCode('');
+        console.log('Coupon redeemed successfully, new balance:', data.new_balance);
+        
+        // Notify parent component about credit update
         if (onCreditsUpdated) {
           onCreditsUpdated(data.new_balance);
         }
       } else {
-        toast.error(data.error || 'Failed to redeem coupon');
+        toast.error(data?.error || 'Failed to redeem coupon');
       }
     } catch (error) {
       console.error('Error redeeming coupon:', error);

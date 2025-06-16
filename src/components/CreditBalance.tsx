@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Plus, Crown } from "lucide-react";
+import { Coins, Plus, Crown, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import CouponRedemption from './CouponRedemption';
@@ -16,39 +16,59 @@ const CreditBalance = ({ onBuyCredits }: CreditBalanceProps) => {
   const [credits, setCredits] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchCredits = async () => {
+  const fetchCredits = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        setLoading(false);
+        return;
+      }
 
-      const response = await fetch('https://gmsbosytllfouwzujros.supabase.co/functions/v1/check-credits', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      console.log('Fetching credits for user:', session.user.email);
 
-      const data = await response.json();
-      if (response.ok) {
+      const { data, error } = await supabase.functions.invoke('check-credits');
+
+      console.log('Credit check response:', { data, error });
+
+      if (error) {
+        console.error('Error fetching credits:', error);
+        toast.error('Failed to fetch credit balance');
+        return;
+      }
+
+      if (data) {
+        console.log('Setting credits to:', data.credits, 'Admin status:', data.is_admin);
         setCredits(data.credits);
         setIsAdmin(data.is_admin);
       }
     } catch (error) {
       console.error('Error fetching credits:', error);
+      toast.error('Failed to fetch credit balance');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  }, []);
+
+  const handleRefreshCredits = async () => {
+    setRefreshing(true);
+    await fetchCredits();
   };
 
-  const handleCreditsUpdated = (newBalance: number) => {
+  const handleCreditsUpdated = useCallback((newBalance: number) => {
+    console.log('Credits updated callback called with new balance:', newBalance);
     setCredits(newBalance);
-  };
+    // Force a refresh to ensure we have the latest data
+    setTimeout(() => {
+      fetchCredits();
+    }, 1000);
+  }, [fetchCredits]);
 
   useEffect(() => {
     fetchCredits();
-  }, []);
+  }, [fetchCredits]);
 
   if (loading) {
     return (
@@ -78,6 +98,15 @@ const CreditBalance = ({ onBuyCredits }: CreditBalanceProps) => {
                 Admin
               </Badge>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefreshCredits}
+              disabled={refreshing}
+              className="ml-auto p-1"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
           </CardTitle>
           <CardDescription>
             {isAdmin ? 'Unlimited credits as admin user' : 'Credits available for watermark removal'}
