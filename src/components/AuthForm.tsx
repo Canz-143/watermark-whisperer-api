@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,18 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Clear any existing auth state on component mount
+  useEffect(() => {
+    const clearAuthState = async () => {
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        console.log('No existing session to clear');
+      }
+    };
+    clearAuthState();
+  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,17 +62,45 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
     setIsLoading(true);
 
     try {
+      // Get the current origin, which will be the Vercel URL in production
+      const redirectUrl = `${window.location.origin}/`;
+      console.log('Using redirect URL:', redirectUrl);
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: redirectUrl
         }
       });
 
       if (error) throw error;
 
       toast.success('Account created! Please check your email to verify your account.');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
+
+      if (error) throw error;
+
+      toast.success('Password reset email sent! Check your inbox.');
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -122,6 +163,15 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
                   ) : (
                     'Sign In'
                   )}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  className="w-full" 
+                  onClick={handleForgotPassword}
+                  disabled={isLoading}
+                >
+                  Forgot Password?
                 </Button>
               </form>
             </TabsContent>
