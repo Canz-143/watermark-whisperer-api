@@ -44,6 +44,77 @@ export type Database = {
           },
         ]
       }
+      coupon_redemptions: {
+        Row: {
+          coupon_code: string
+          credits_awarded: number
+          email: string
+          id: string
+          redeemed_at: string
+          user_id: string | null
+        }
+        Insert: {
+          coupon_code: string
+          credits_awarded: number
+          email: string
+          id?: string
+          redeemed_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          coupon_code?: string
+          credits_awarded?: number
+          email?: string
+          id?: string
+          redeemed_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_code_fkey"
+            columns: ["coupon_code"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          credits_amount: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          credits_amount: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          credits_amount?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           created_at: string
