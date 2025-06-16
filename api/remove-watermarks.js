@@ -1,33 +1,9 @@
+
 // ChatGPT Watermark Removal API - SMART VERSION
 // Fully production-ready serverless function for Vercel deployment
 
-/**
- * Maps Unicode characters to human-readable names
- */
-function getCharacterName(char) {
-  const characterMap = {
-    '\u202F': 'Narrow No-Break Space',
-    '\u200B': 'Zero-Width Space',
-    '\u2003': 'Em Space',
-    '\u2014': 'Em Dash',
-    '\u00A0': 'Non-Breaking Space',
-    '\u2060': 'Word Joiner',
-    '\u200C': 'Zero-Width Non-Joiner',
-    '\u200D': 'Zero-Width Joiner',
-    '\uFEFF': 'Zero-Width No-Break Space',
-    '\u2028': 'Line Separator',
-    '\u2029': 'Paragraph Separator',
-    '\u180E': 'Mongolian Vowel Separator',
-    '\u061C': 'Arabic Letter Mark',
-    '\u00B7': 'Middle Dot',
-    '\u2011': 'Non-Breaking Hyphen',
-    '\u034F': 'Combining Grapheme Joiner',
-    '\u200A': 'Hair Space',
-    '\u2008': 'Punctuation Space'
-  };
-  
-  return characterMap[char] || `Unknown Character (U+${char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')})`;
-}
+import { detectWatermarks } from './utils/watermarkDetector.js';
+import { cleanWatermarks } from './utils/textCleaner.js';
 
 /**
  * Removes ChatGPT watermarks from text while preserving original formatting
@@ -38,100 +14,13 @@ function removeWatermarks(text) {
   }
 
   const originalText = text;
-  const originalLength = text.length;
-
-  // Comprehensive list of all invisible/zero-width watermark characters
-  const invisibleWatermarkChars = [
-    '\u200B', // Zero-Width Space - most common watermark
-    '\u200C', // Zero-Width Non-Joiner
-    '\u200D', // Zero-Width Joiner
-    '\uFEFF', // Zero-Width No-Break Space (BOM)
-    '\u2060', // Word Joiner
-    '\u061C', // Arabic Letter Mark
-    '\u180E', // Mongolian Vowel Separator
-    '\u034F'  // Combining Grapheme Joiner
-  ];
-
-  // Spacing characters that should be converted to normal spaces
-  const spacingChars = [
-    '\u202F', // Narrow No-Break Space
-    '\u2003', // Em Space
-    '\u00A0', // Non-Breaking Space
-    '\u2011', // Non-Breaking Hyphen (sometimes used as separator)
-    '\u200A', // Hair Space
-    '\u2008'  // Punctuation Space
-  ];
-
-  // Line separator characters that should become newlines to preserve formatting
-  const lineBreakChars = [
-    '\u2028', // Line Separator
-    '\u2029'  // Paragraph Separator
-  ];
-
-  // All watermark characters for detection and counting
-  const allWatermarkChars = [...invisibleWatermarkChars, ...spacingChars, ...lineBreakChars];
-
-  const detectedWatermarks = [];
-  let totalRemoved = 0;
-
-  // Count occurrences of each watermark character
-  allWatermarkChars.forEach(char => {
-    const charRegex = new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g');
-    const matches = text.match(charRegex);
-    if (matches) {
-      detectedWatermarks.push({
-        character: char,
-        name: getCharacterName(char),
-        count: matches.length,
-        unicode: `U+${char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`
-      });
-      totalRemoved += matches.length;
-    }
-  });
-
-  console.log(`Input text analysis:`, {
-    length: originalLength,
-    detectedWatermarks: detectedWatermarks,
-    totalToRemove: totalRemoved
-  });
-
-  let cleanedText = text;
-
-  // Step 1: Remove all invisible watermark characters completely
-  invisibleWatermarkChars.forEach(char => {
-    const charRegex = new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g');
-    cleanedText = cleanedText.replace(charRegex, '');
-  });
-
-  // Step 2: Replace all spacing characters with normal spaces
-  spacingChars.forEach(char => {
-    const charRegex = new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g');
-    cleanedText = cleanedText.replace(charRegex, ' ');
-  });
-
-  // Step 3: Convert line separator characters to proper newlines to preserve formatting
-  lineBreakChars.forEach(char => {
-    const charRegex = new RegExp('\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'), 'g');
-    cleanedText = cleanedText.replace(charRegex, '\n');
-  });
-
-  // Step 4: Clean up multiple consecutive spaces on the same line (preserve newlines)
-  // Only collapse spaces and tabs, not newlines
-  cleanedText = cleanedText.replace(/[ \t]{2,}/g, ' ');
-
-  // Step 5: Clean up spaces around punctuation if needed (preserve line structure)
-  cleanedText = cleanedText.replace(/[ \t]+([.,!?;:])/g, '$1');
-  cleanedText = cleanedText.replace(/([.,!?;:])[ \t]{2,}/g, '$1 ');
-
-  // Step 6: Only trim excessive leading/trailing whitespace, preserve intentional formatting
-  // Remove only if there are more than 2 consecutive spaces/newlines at start/end
-  cleanedText = cleanedText.replace(/^[ \t]{2,}/, ' ').replace(/[ \t]{2,}$/, ' ');
-  cleanedText = cleanedText.replace(/^\n{2,}/, '\n').replace(/\n{2,}$/, '\n');
+  const detection = detectWatermarks(text);
+  const cleanedText = cleanWatermarks(text);
 
   console.log(`Processing complete:`, {
-    originalLength,
+    originalLength: detection.originalLength,
     cleanedLength: cleanedText.length,
-    charactersRemoved: totalRemoved,
+    charactersRemoved: detection.totalRemoved,
     cleanedText: cleanedText.substring(0, 100) + (cleanedText.length > 100 ? '...' : '')
   });
 
@@ -139,11 +28,11 @@ function removeWatermarks(text) {
     original: originalText,
     cleaned: cleanedText,
     stats: {
-      originalLength,
+      originalLength: detection.originalLength,
       cleanedLength: cleanedText.length,
-      charactersRemoved: totalRemoved,
-      watermarksDetected: detectedWatermarks.length > 0,
-      detectedWatermarks,
+      charactersRemoved: detection.totalRemoved,
+      watermarksDetected: detection.watermarksDetected,
+      detectedWatermarks: detection.detectedWatermarks,
       processingTime: new Date().toISOString()
     }
   };
