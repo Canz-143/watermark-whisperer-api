@@ -51,6 +51,46 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
     }
   };
 
+  const initializeUserCredits = async (userId: string, userEmail: string) => {
+    try {
+      console.log('Initializing user credits for:', userEmail);
+      
+      // Check if user already has credits record
+      const { data: existingCredits } = await supabase
+        .from('user_credits')
+        .select('*')
+        .eq('email', userEmail)
+        .single();
+
+      if (existingCredits) {
+        console.log('User already has credits record:', existingCredits);
+        return;
+      }
+
+      // Create new user credits record
+      const isAdmin = userEmail === 'albertcanz66@gmail.com';
+      const { error } = await supabase
+        .from('user_credits')
+        .insert({
+          user_id: userId,
+          email: userEmail,
+          credits: isAdmin ? 999999 : 0,
+          is_admin: isAdmin
+        });
+
+      if (error) {
+        console.error('Error creating user credits:', error);
+        if (error.code !== '23505') { // Ignore duplicate key errors
+          throw error;
+        }
+      } else {
+        console.log('Successfully created user credits for:', userEmail);
+      }
+    } catch (error) {
+      console.error('Error in initializeUserCredits:', error);
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -66,7 +106,7 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
       const redirectUrl = `${window.location.origin}/`;
       console.log('Using redirect URL:', redirectUrl);
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -75,6 +115,11 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
       });
 
       if (error) throw error;
+
+      // Initialize user credits if sign up was successful and user was created
+      if (data.user && !data.user.email_confirmed_at) {
+        await initializeUserCredits(data.user.id, data.user.email!);
+      }
 
       toast.success('Account created! Please check your email to verify your account.');
     } catch (error) {
