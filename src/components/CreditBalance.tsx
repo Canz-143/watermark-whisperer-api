@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Plus, Crown, RefreshCw, UserPlus } from "lucide-react";
+import { Coins, Plus, Crown, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,41 +16,6 @@ const CreditBalance = ({ onBuyCredits }: CreditBalanceProps) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [userNotFound, setUserNotFound] = useState(false);
-
-  const initializeUserCredits = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      console.log('Initializing user credits for:', session.user.email);
-      
-      const isAdminUser = session.user.email === 'albertcanz66@gmail.com';
-      const { error } = await supabase
-        .from('user_credits')
-        .insert({
-          user_id: session.user.id,
-          email: session.user.email!,
-          credits: isAdminUser ? 999999 : 0,
-          is_admin: isAdminUser
-        });
-
-      if (error) {
-        console.error('Error creating user credits:', error);
-        if (error.code !== '23505') { // Ignore duplicate key errors
-          toast.error('Failed to initialize user credits');
-          return;
-        }
-      }
-
-      // Refresh credits after initialization
-      await fetchCredits();
-      toast.success('User credits initialized successfully');
-    } catch (error) {
-      console.error('Error initializing user credits:', error);
-      toast.error('Failed to initialize user credits');
-    }
-  };
 
   const fetchCredits = useCallback(async () => {
     try {
@@ -74,15 +39,14 @@ const CreditBalance = ({ onBuyCredits }: CreditBalanceProps) => {
 
       if (data) {
         if (data.message === 'User not found in credits system') {
-          console.log('User not found in credits system');
-          setUserNotFound(true);
+          console.log('User not found in credits system - this should not happen for existing users');
           setCredits(0);
           setIsAdmin(data.is_admin || false);
+          toast.error('Credit account not found. Please contact support if this persists.');
         } else {
           console.log('Setting credits to:', data.credits, 'Admin status:', data.is_admin);
           setCredits(data.credits);
           setIsAdmin(data.is_admin);
-          setUserNotFound(false);
         }
       }
     } catch (error) {
@@ -152,27 +116,7 @@ const CreditBalance = ({ onBuyCredits }: CreditBalanceProps) => {
           </p>
         </div>
         
-        {userNotFound && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-yellow-700 text-sm font-medium mb-2">
-              Credits not initialized
-            </p>
-            <p className="text-yellow-600 text-xs mb-3">
-              Your account needs to be set up in the credits system
-            </p>
-            <Button 
-              onClick={initializeUserCredits} 
-              size="sm" 
-              className="w-full"
-              variant="outline"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Initialize Credits
-            </Button>
-          </div>
-        )}
-        
-        {!isAdmin && !userNotFound && (
+        {!isAdmin && (
           <>
             <div className="text-xs text-gray-500 text-center">
               Each watermark removal costs 10 credits

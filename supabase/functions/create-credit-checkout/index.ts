@@ -53,7 +53,7 @@ serve(async (req) => {
         },
       ],
       mode: 'payment',
-      success_url: `${req.headers.get('origin')}/dashboard?credits_purchased=${credits}`,
+      success_url: `${req.headers.get('origin')}/purchase-success?credits_purchased=${credits}`,
       cancel_url: `${req.headers.get('origin')}/dashboard`,
       metadata: {
         user_id: user.id,
@@ -70,6 +70,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error creating checkout session:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

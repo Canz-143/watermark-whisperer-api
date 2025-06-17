@@ -9,6 +9,7 @@ import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
 import WatermarkRemover from "./pages/WatermarkRemover";
 import Dashboard from "./pages/Dashboard";
+import PurchaseSuccess from "./pages/PurchaseSuccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/watermark-remover" element={<WatermarkRemover />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/purchase-success" element={<PurchaseSuccess />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
