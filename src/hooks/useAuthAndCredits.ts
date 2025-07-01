@@ -21,18 +21,31 @@ export const useAuthAndCredits = () => {
 
   const fetchCredits = async (session: any) => {
     try {
-      const response = await fetch('https://gmsbosytllfouwzujros.supabase.co/functions/v1/check-credits', {
-        method: 'POST',
+      console.log('Fetching credits for user:', session.user.email);
+
+      const { data, error } = await supabase.functions.invoke('check-credits', {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setCredits(data.credits);
-        setIsAdmin(data.is_admin);
+      console.log('Credit check response:', { data, error });
+
+      if (error) {
+        console.error('Error fetching credits:', error);
+        return;
+      }
+
+      if (data) {
+        if (data.message === 'User not found in credits system') {
+          console.log('User not found in credits system');
+          setCredits(0);
+          setIsAdmin(data.is_admin || false);
+        } else {
+          console.log('Setting credits to:', data.credits, 'Admin status:', data.is_admin);
+          setCredits(data.credits);
+          setIsAdmin(data.is_admin);
+        }
       }
     } catch (error) {
       console.error('Error fetching credits:', error);

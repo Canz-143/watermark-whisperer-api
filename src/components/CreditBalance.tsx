@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,11 @@ const CreditBalance = ({ onBuyCredits }: CreditBalanceProps) => {
 
       console.log('Fetching credits for user:', session.user.email);
 
-      const { data, error } = await supabase.functions.invoke('check-credits');
+      const { data, error } = await supabase.functions.invoke('check-credits', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       console.log('Credit check response:', { data, error });
 
@@ -39,7 +42,7 @@ const CreditBalance = ({ onBuyCredits }: CreditBalanceProps) => {
 
       if (data) {
         if (data.message === 'User not found in credits system') {
-          console.log('User not found in credits system - this should not happen for existing users');
+          console.log('User not found in credits system');
           setCredits(0);
           setIsAdmin(data.is_admin || false);
           toast.error('Credit account not found. Please contact support if this persists.');

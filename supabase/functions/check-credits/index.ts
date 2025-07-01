@@ -13,15 +13,23 @@ serve(async (req) => {
   }
 
   try {
+    // Use service role key to bypass RLS
     const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+
+    // Get user from JWT token for authentication
+    const authHeader = req.headers.get('Authorization')!
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Create a client with anon key to verify JWT
+    const anonClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
-
-    // Get user from JWT token
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user } } = await supabaseClient.auth.getUser(token)
+    
+    const { data: { user } } = await anonClient.auth.getUser(token)
     
     if (!user) {
       throw new Error('User not authenticated')
@@ -29,7 +37,7 @@ serve(async (req) => {
 
     console.log('Checking credits for user:', user.email)
 
-    // Get user credits - do NOT create new records here
+    // Get user credits using service role (bypasses RLS)
     const { data: userCredits, error } = await supabaseClient
       .from('user_credits')
       .select('*')
