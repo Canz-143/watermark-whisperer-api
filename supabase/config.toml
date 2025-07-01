@@ -1,1 +1,8 @@
+
 project_id = "gmsbosytllfouwzujros"
+
+[functions.check-guest-usage]
+verify_jwt = false
+
+[functions.use-guest-credit]
+verify_jwt = false

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +25,8 @@ const WatermarkRemover = () => {
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [guestUsage, setGuestUsage] = useState(null);
   const [isGuest, setIsGuest] = useState(false);
+  const [guestUsageLoading, setGuestUsageLoading] = useState(false);
+  const [guestUsageError, setGuestUsageError] = useState(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
 
@@ -53,7 +54,11 @@ const WatermarkRemover = () => {
   };
 
   const checkGuestUsage = async () => {
+    setGuestUsageLoading(true);
+    setGuestUsageError(null);
+    
     try {
+      console.log('Checking guest usage...');
       const response = await fetch('https://gmsbosytllfouwzujros.supabase.co/functions/v1/check-guest-usage', {
         method: 'POST',
         headers: {
@@ -61,12 +66,21 @@ const WatermarkRemover = () => {
         },
       });
 
+      console.log('Guest usage response status:', response.status);
       const data = await response.json();
+      console.log('Guest usage data:', data);
+
       if (response.ok) {
         setGuestUsage(data);
+      } else {
+        console.error('Guest usage error:', data);
+        setGuestUsageError(data.error || 'Failed to check guest usage');
       }
     } catch (error) {
       console.error('Error checking guest usage:', error);
+      setGuestUsageError('Network error while checking guest usage');
+    } finally {
+      setGuestUsageLoading(false);
     }
   };
 
@@ -199,6 +213,7 @@ const WatermarkRemover = () => {
         }
       } else {
         // Guest user flow
+        console.log('Processing as guest user...');
         const response = await fetch('https://gmsbosytllfouwzujros.supabase.co/functions/v1/use-guest-credit', {
           method: 'POST',
           headers: {
@@ -207,7 +222,9 @@ const WatermarkRemover = () => {
           body: JSON.stringify({ text: inputText }),
         });
 
+        console.log('Guest processing response status:', response.status);
         const data = await response.json();
+        console.log('Guest processing data:', data);
         
         if (response.ok && data.success) {
           setResult(data);
@@ -223,6 +240,7 @@ const WatermarkRemover = () => {
             toast.info('Free uses exhausted! Sign up to continue using the service.');
           }
         } else {
+          console.error('Guest processing failed:', data);
           toast.error(data.error || 'Failed to process text');
         }
       }
@@ -267,6 +285,52 @@ const WatermarkRemover = () => {
   const characterCount = inputText.length;
   const canUseService = user ? (isAdmin || credits >= 10) : (guestUsage?.can_use || false);
 
+  // Render guest usage status
+  const renderGuestUsageStatus = () => {
+    if (guestUsageLoading) {
+      return (
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md mx-auto">
+          <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200 text-sm">
+            <Loader className="h-4 w-4 animate-spin" />
+            <span>Checking free usage availability...</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (guestUsageError) {
+      return (
+        <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 max-w-md mx-auto">
+          <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200 text-sm mb-2">
+            <Gift className="h-4 w-4" />
+            <strong>Free Trial Available</strong>
+          </div>
+          <p className="text-yellow-700 dark:text-yellow-300 text-sm">
+            Unable to check usage status, but you can still try the service for free.
+            <br />Sign up for unlimited access with credits.
+          </p>
+        </div>
+      );
+    }
+
+    if (guestUsage) {
+      return (
+        <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 max-w-md mx-auto">
+          <div className="flex items-center gap-2 text-green-800 dark:text-green-200 text-sm mb-2">
+            <Gift className="h-4 w-4" />
+            <strong>Try Free - No Signup Required!</strong>
+          </div>
+          <p className="text-green-700 dark:text-green-300 text-sm">
+            {guestUsage.remaining_uses} of {guestUsage.total_free_uses} free uses remaining today.
+            <br />Sign up for unlimited access with credits.
+          </p>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   if (showAuthForm) {
     return <AuthForm onAuthSuccess={() => {
       setShowAuthForm(false);
@@ -292,7 +356,7 @@ const WatermarkRemover = () => {
                 {isAdmin && <span className="text-purple-600 font-medium">Admin</span>}
               </div>
             ) : (
-              guestUsage && (
+              guestUsage && !guestUsageError && (
                 <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                   <Gift className="h-4 w-4" />
                   <span>{guestUsage.remaining_uses} free uses remaining today</span>
@@ -334,18 +398,7 @@ const WatermarkRemover = () => {
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
             Remove hidden watermark characters from AI-generated text with advanced detection algorithms
           </p>
-          {!user && (
-            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 max-w-md mx-auto">
-              <div className="flex items-center gap-2 text-green-800 dark:text-green-200 text-sm mb-2">
-                <Gift className="h-4 w-4" />
-                <strong>Try Free - No Signup Required!</strong>
-              </div>
-              <p className="text-green-700 dark:text-green-300 text-sm">
-                {guestUsage ? `${guestUsage.remaining_uses} of ${guestUsage.total_free_uses} free uses remaining today.` : 'Loading free usage info...'}
-                <br />Sign up for unlimited access with credits.
-              </p>
-            </div>
-          )}
+          {!user && renderGuestUsageStatus()}
         </div>
 
         {/* Enhanced Input Section */}
