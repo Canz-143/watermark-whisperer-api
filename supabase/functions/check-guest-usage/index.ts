@@ -7,6 +7,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helper function to extract and validate the first IP address
+function extractClientIP(req: Request): string {
+  const xForwardedFor = req.headers.get('x-forwarded-for');
+  const xRealIp = req.headers.get('x-real-ip');
+  
+  // If x-forwarded-for exists, take the first IP (client IP)
+  if (xForwardedFor) {
+    const firstIP = xForwardedFor.split(',')[0].trim();
+    if (firstIP && firstIP !== '') {
+      return firstIP;
+    }
+  }
+  
+  // Fallback to x-real-ip
+  if (xRealIp && xRealIp.trim() !== '') {
+    return xRealIp.trim();
+  }
+  
+  // Final fallback
+  return '127.0.0.1';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -18,10 +40,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Get client IP address
-    const clientIP = req.headers.get('x-forwarded-for') || 
-                    req.headers.get('x-real-ip') || 
-                    '127.0.0.1'
+    // Get client IP address - extract first IP from comma-separated list
+    const clientIP = extractClientIP(req);
 
     console.log('Checking guest usage for IP:', clientIP)
 
