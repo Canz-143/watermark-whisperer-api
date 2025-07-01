@@ -143,6 +143,33 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_usage: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: unknown
+          last_reset_date: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address: unknown
+          last_reset_date?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          last_reset_date?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       n8n_chat_histories: {
         Row: {
           id: number
@@ -283,7 +310,7 @@ export type Database = {
       }
       l2_normalize: {
         Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: unknown
+        Returns: string
       }
       match_documents: {
         Args: { query_embedding: string; match_count?: number; filter?: Json }
